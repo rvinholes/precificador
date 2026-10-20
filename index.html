@@ -183,6 +183,195 @@ tr.innerHTML=h;
 document.querySelector('#tabelaMateriais tbody').appendChild(tr);
 calcular();
 }
+function addMaoObra(desc,qtd,unid,valor){
+moId++;
+desc=desc||'';qtd=qtd||'';unid=unid||'h';valor=valor||'';
+var tr=document.createElement('tr');tr.id='mo-'+moId;
+var h='<td><input value="'+desc+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+qtd+'" onchange="calcular()"></td>';
+h+='<td><input value="'+unid+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+valor+'" onchange="calcular()"></td>';
+h+='<td class="num" id="moT'+moId+'">R$ 0,00</td>';
+h+='<td><button class="btn-danger btn-small" onclick="removeLinha(\'mo-'+moId+'\')">x</button></td>';
+tr.innerHTML=h;
+document.querySelector('#tabelaMaoObra tbody').appendChild(tr);
+calcular();
+}
+function addAdicional(desc,qtd,valor){
+adId++;
+desc=desc||'';qtd=qtd||'';valor=valor||'';
+var tr=document.createElement('tr');tr.id='ad-'+adId;
+var h='<td><input value="'+desc+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+qtd+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+valor+'" onchange="calcular()"></td>';
+h+='<td class="num" id="adT'+adId+'">R$ 0,00</td>';
+h+='<td><button class="btn-danger btn-small" onclick="removeLinha(\'ad-'+adId+'\')">x</button></td>';
+tr.innerHTML=h;
+document.querySelector('#tabelaAdicionais tbody').appendChild(tr);
+calcular();
+}
+function calcular(){
+var totalMat=0;
+var linhas=document.querySelectorAll('#tabelaMateriais tbody tr');
+for(var i=0;i<linhas.length;i++){
+var tr=linhas[i];
+var inp=tr.querySelectorAll('input');
+var sel=tr.querySelectorAll('select');
+var qtd=num(inp[1].value);
+var uu=sel[0].value;
+var ce=num(inp[2].value);
+var qe=Math.max(num(inp[3].value),0.0000001);
+var uc=sel[1].value;
+var perda=num(inp[4].value);
+var f=fator(uu,uc);
+var cru=ce/qe;
+var ct;
+if(f===null){ct=qtd*cru;}else{ct=qtd*f*cru;}
+ct=ct*(1+perda/100);
+var idn=tr.id.split('-')[1];
+document.getElementById('matT'+idn).textContent=fmt(ct);
+totalMat+=ct;
+}
+document.getElementById('totalMateriais').textContent=fmt(totalMat);
+var totalMO=0;
+var linhasMO=document.querySelectorAll('#tabelaMaoObra tbody tr');
+for(var j=0;j<linhasMO.length;j++){
+var tr2=linhasMO[j];
+var inp2=tr2.querySelectorAll('input');
+var ct2=num(inp2[1].value)*num(inp2[3].value);
+var idn2=tr2.id.split('-')[1];
+document.getElementById('moT'+idn2).textContent=fmt(ct2);
+totalMO+=ct2;
+}
+document.getElementById('totalMaoObra').textContent=fmt(totalMO);
+var totalAd=0;
+var linhasAd=document.querySelectorAll('#tabelaAdicionais tbody tr');
+for(var k=0;k<linhasAd.length;k++){
+var tr3=linhasAd[k];
+var inp3=tr3.querySelectorAll('input');
+var ct3=num(inp3[1].value)*num(inp3[2].value);
+var idn3=tr3.id.split('-')[1];
+document.getElementById('adT'+idn3).textContent=fmt(ct3);
+totalAd+=ct3;
+}
+document.getElementById('totalAdicionais').textContent=fmt(totalAd);
+var pe=num(document.getElementById('pEncargos').value)/100;
+var pb=num(document.getElementById('pBDI').value)/100;
+var pi=num(document.getElementById('pImpostos').value)/100;
+var pm=num(document.getElementById('pMargem').value)/100;
+var pc=num(document.getElementById('pComissao').value)/100;
+var pf=num(document.getElementById('pFinanceiro').value)/100;
+var moEnc=totalMO*(1+pe);
+var cd=totalMat+moEnc+totalAd;
+var bdi=cd*pb;
+var ctp=cd+bdi;
+var soma=pi+pm+pc+pf;
+var av=document.getElementById('avisoMarkup');
+var pv;
+if(soma>=1){av.textContent='Atencao: soma de impostos+margem+comissao+financeiro maior ou igual a 100%.';pv=NaN;}else{av.textContent='';pv=ctp/(1-soma);}
+var qp=Math.max(num(document.getElementById('produtoQtd').value),0.0000001);
+var cu2=ctp/qp;
+var pu=pv/qp;
+var mk=ctp>0?pv/ctp:0;
+document.getElementById('rMateriais').textContent=fmt(totalMat);
+document.getElementById('rMaoObra').textContent=fmt(moEnc);
+document.getElementById('rAdicionais').textContent=fmt(totalAd);
+document.getElementById('rCustoDireto').textContent=fmt(cd);
+document.getElementById('rBDI').textContent=fmt(bdi);
+document.getElementById('rCustoTotal').textContent=fmt(ctp);
+document.getElementById('rCustoUnit').textContent=fmt(cu2);
+document.getElementById('rPrecoVenda').textContent=isNaN(pv)?'-':fmt(pv);
+document.getElementById('rPrecoUnit').textContent=isNaN(pu)?'-':fmt(pu);
+document.getElementById('rMarkup').textContent=(isFinite(mk)?mk.toFixed(2):'0.00')+'x';
+}
+function coletarEstado(){
+var mat=[];
+var lm=document.querySelectorAll('#tabelaMateriais tbody tr');
+for(var i=0;i<lm.length;i++){
+var inp=lm[i].querySelectorAll('input');
+var sel=lm[i].querySelectorAll('select');
+mat.push({desc:inp[0].value,qtd:inp[1].value,unidUso:sel[0].value,custoUnid:inp[2].value,qtdEmbalagem:inp[3].value,unidCompra:sel[1].value,perda:inp[4].value});
+}
+var mo=[];
+var lmo=document.querySelectorAll('#tabelaMaoObra tbody tr');
+for(var j=0;j<lmo.length;j++){
+var i2=lmo[j].querySelectorAll('input');
+mo.push({desc:i2[0].value,qtd:i2[1].value,unid:i2[2].value,valorUnid:i2[3].value});
+}
+var ad=[];
+var lad=document.querySelectorAll('#tabelaAdicionais tbody tr');
+for(var k=0;k<lad.length;k++){
+var i3=lad[k].querySelectorAll('input');
+ad.push({desc:i3[0].value,qtd:i3[1].value,valorUnid:i3[2].value});
+}
+return{produtoNome:document.getElementById('produtoNome').value,produtoQtd:document.getElementById('produtoQtd').value,produtoUnidade:document.getElementById('produtoUnidade').value,materiais:mat,maoObra:mo,adicionais:ad,pEncargos:document.getElementById('pEncargos').value,pBDI:document.getElementById('pBDI').value,pImpostos:document.getElementById('pImpostos').value,pMargem:document.getElementById('pMargem').value,pComissao:document.getElementById('pComissao').value,pFinanceiro:document.getElementById('pFinanceiro').value};
+}
+function salvarLocal(){localStorage.setItem('precificador_estado',JSON.stringify(coletarEstado()));alert('Dados salvos!');}
+function carregarLocal(){var r=localStorage.getItem('precificador_estado');if(!r){alert('Nenhum dado salvo.');return;}restaurarEstado(JSON.parse(r));}
+function restaurarEstado(e){
+document.querySelector('#tabelaMateriais tbody').innerHTML='';
+document.querySelector('#tabelaMaoObra tbody').innerHTML='';
+document.querySelector('#tabelaAdicionais tbody').innerHTML='';
+document.getElementById('produtoNome').value=e.produtoNome||'';
+document.getElementById('produtoQtd').value=e.produtoQtd||1;
+document.getElementById('produtoUnidade').value=e.produtoUnidade||'';
+var mm=e.materiais||[];
+for(var i=0;i<mm.length;i++){var m=mm[i];addMaterial(m.desc,m.qtd,m.unidUso,m.custoUnid,m.qtdEmbalagem||1,m.unidCompra,m.perda);}
+var mo=e.maoObra||[];
+for(var j=0;j<mo.length;j++){addMaoObra(mo[j].desc,mo[j].qtd,mo[j].unid,mo[j].valorUnid);}
+var ad=e.adicionais||[];
+for(var k=0;k<ad.length;k++){addAdicional(ad[k].desc,ad[k].qtd,ad[k].valorUnid);}
+document.getElementById('pEncargos').value=(e.pEncargos!==undefined)?e.pEncargos:0;
+document.getElementById('pBDI').value=(e.pBDI!==undefined)?e.pBDI:10;
+document.getElementById('pImpostos').value=(e.pImpostos!==undefined)?e.pImpostos:6;
+document.getElementById('pMargem').value=(e.pMargem!==undefined)?e.pMargem:20;
+document.getElementById('pComissao').value=(e.pComissao!==undefined)?e.pComissao:0;
+document.getElementById('pFinanceiro').value=(e.pFinanceiro!==undefined)?e.pFinanceiro:0;
+calcular();
+}
+function exportarCSV(){
+var e=coletarEstado();
+var csv='TIPO;DESCRICAO;QTD_USADA;UNIDADE_USO;CUSTO_EMBALAGEM;QTD_NA_EMBALAGEM;UNIDADE_COMPRA;PERDA'+NL;
+var mm=e.materiais;
+for(var i=0;i<mm.length;i++){var m=mm[i];csv+='MATERIAL;'+m.desc+';'+m.qtd+';'+m.unidUso+';'+m.custoUnid+';'+m.qtdEmbalagem+';'+m.unidCompra+';'+m.perda+NL;}
+var mo=e.maoObra;
+for(var j=0;j<mo.length;j++){csv+='MAO_DE_OBRA;'+mo[j].desc+';'+mo[j].qtd+';'+mo[j].unid+';'+mo[j].valorUnid+';;;;'+NL;}
+var ad=e.adicionais;
+for(var k=0;k<ad.length;k++){csv+='ADICIONAL;'+ad[k].desc+';'+ad[k].qtd+';;'+ad[k].valorUnid+';;;;'+NL;}
+var b=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+var l=document.createElement('a');
+l.href=URL.createObjectURL(b);
+l.download='precificacao.csv';
+l.click();
+}
+function limparTudo(){
+if(!confirm('Limpar todos os dados?'))return;
+document.querySelector('#tabelaMateriais tbody').innerHTML='';
+document.querySelector('#tabelaMaoObra tbody').innerHTML='';
+document.querySelector('#tabelaAdicionais tbody').innerHTML='';
+document.getElementById('produtoNome').value='';
+calcular();
+}
+var EXEMPLOS={
+construcao:{produtoNome:'Viga pre-moldada 20x40cm',produtoQtd:1,produtoUnidade:'un',materiais:[{desc:'Cimento CP-II',qtd:25,unidUso:'kg',custoUnid:32,qtdEmbalagem:1,unidCompra:'kg',perda:5},{desc:'Aditivo plastificante',qtd:150,unidUso:'g',custoUnid:18.5,qtdEmbalagem:1,unidCompra:'kg',perda:2},{desc:'Areia media',qtd:0.08,unidUso:'m3',custoUnid:65,qtdEmbalagem:1,unidCompra:'m3',perda:10}],maoObra:[{desc:'Pedreiro',qtd:4,unid:'h',valorUnid:22},{desc:'Servente',qtd:4,unid:'h',valorUnid:15}],adicionais:[{desc:'Depreciacao de forma metalica',qtd:1,valorUnid:25}],pEncargos:80,pBDI:25,pImpostos:11,pMargem:15,pComissao:0,pFinanceiro:0},
+confeitaria:{produtoNome:'Bolo de chocolate 1kg',produtoQtd:1,produtoUnidade:'un',materiais:[{desc:'Farinha de trigo',qtd:300,unidUso:'g',custoUnid:5.5,qtdEmbalagem:1,unidCompra:'kg',perda:3},{desc:'Chocolate em po',qtd:150,unidUso:'g',custoUnid:22,qtdEmbalagem:1,unidCompra:'kg',perda:2},{desc:'Acucar',qtd:250,unidUso:'g',custoUnid:4.2,qtdEmbalagem:1,unidCompra:'kg',perda:2},{desc:'Ovos',qtd:4,unidUso:'un',custoUnid:9.6,qtdEmbalagem:12,unidCompra:'un',perda:0},{desc:'Leite',qtd:200,unidUso:'ml',custoUnid:5.5,qtdEmbalagem:1,unidCompra:'l',perda:0}],maoObra:[{desc:'Confeiteiro(a)',qtd:1.5,unid:'h',valorUnid:25}],adicionais:[{desc:'Embalagem e caixa',qtd:1,valorUnid:8}],pEncargos:0,pBDI:8,pImpostos:6,pMargem:25,pComissao:0,pFinanceiro:0},
+costura:{produtoNome:'Camisa social masculina',produtoQtd:1,produtoUnidade:'un',materiais:[{desc:'Tecido tricoline',qtd:1.6,unidUso:'m',custoUnid:28,qtdEmbalagem:1,unidCompra:'m',perda:8},{desc:'Botoes',qtd:9,unidUso:'un',custoUnid:3.6,qtdEmbalagem:12,unidCompra:'un',perda:0},{desc:'Fio de costura',qtd:30,unidUso:'g',custoUnid:0.09,qtdEmbalagem:1,unidCompra:'g',perda:5},{desc:'Entretela',qtd:0.1,unidUso:'m',custoUnid:15,qtdEmbalagem:1,unidCompra:'m',perda:5}],maoObra:[{desc:'Costureira(o)',qtd:1.2,unid:'h',valorUnid:20},{desc:'Corte e acabamento',qtd:0.4,unid:'h',valorUnid:18}],adicionais:[{desc:'Etiqueta e embalagem',qtd:1,valorUnid:3.5}],pEncargos:0,pBDI:10,pImpostos:6,pMargem:30,pComissao:5,pFinanceiro:0},
+servico:{produtoNome:'Hora de consultoria tecnica',produtoQtd:1,produtoUnidade:'hora',materiais:[{desc:'Material de apoio',qtd:1,unidUso:'un',custoUnid:5,qtdEmbalagem:1,unidCompra:'un',perda:0}],maoObra:[{desc:'Consultor(a)',qtd:1,unid:'h',valorUnid:80}],adicionais:[{desc:'Deslocamento',qtd:1,valorUnid:15},{desc:'Softwares rateio',qtd:1,valorUnid:5}],pEncargos:0,pBDI:15,pImpostos:6,pMargem:35,pComissao:0,pFinanceiro:2}
+};
+function carregarExemplo(ch){
+try{
+var e=EXEMPLOS[ch];
+if(!e){document.getElementById('statusExemplo').textContent='Exemplo nao encontrado.';return;}
+restaurarEstado(e);
+document.getElementById('statusExemplo').textContent='Exemplo carregado: '+ch;
+setTimeout(function(){document.getElementById('statusExemplo').textContent='';},4000);
+}catch(err){
+document.getElementById('statusExemplo').textContent='Erro: '+err.message;
+}
+}
+addMaterial();
+addMaoObra();
+calcular();
 </script>
 </body>
 </html>
