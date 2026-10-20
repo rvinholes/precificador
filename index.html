@@ -4,9 +4,185 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Precificador Universal</title>
+<style>
+:root{--bg:#0f1720;--panel:#16212c;--panel2:#1c2a37;--accent:#2dd4bf;--accent2:#f59e0b;--text:#e6edf3;--muted:#9fb0bd;--danger:#ef4444;--border:#2a3b48;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text);padding:20px;}
+h1{font-size:22px;margin:0 0 4px 0;}
+h2{font-size:16px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:6px;margin-top:28px;}
+.sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+.container{max-width:1250px;margin:0 auto;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.row{display:flex;gap:12px;flex-wrap:wrap;}
+.col{flex:1;min-width:140px;}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+input,select{width:100%;padding:7px 8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:13px;}
+button{cursor:pointer;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--accent);color:#00201c;}
+.btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);padding:5px 9px;}
+.btn-small{padding:5px 10px;font-size:12px;}
+.btn-example{background:var(--panel2);border:1px solid var(--accent);color:var(--accent);padding:6px 12px;font-size:12px;border-radius:16px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:left;}
+th{color:var(--muted);font-size:12px;text-transform:uppercase;}
+tfoot td{font-weight:700;}
+.num{text-align:right;}
+.actions-bar{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+.summary-item{background:var(--panel2);border-radius:8px;padding:12px 14px;border:1px solid var(--border);}
+.summary-item .label{font-size:12px;color:var(--muted);}
+.summary-item .value{font-size:20px;font-weight:700;margin-top:4px;}
+.highlight{border-color:var(--accent);}
+.highlight .value{color:var(--accent);font-size:26px;}
+.warn{color:var(--accent2);font-size:12px;margin-top:6px;}
+.tag{font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--muted);}
+footer{text-align:center;color:var(--muted);font-size:11px;margin-top:30px;}
+.top-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.help-box{background:var(--panel2);border-left:3px solid var(--accent);border-radius:6px;padding:10px 12px;font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.help-box b{color:var(--text);}
+.examples-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+#statusExemplo{font-size:12px;color:var(--ok);margin-left:8px;}
+</style>
 </head>
 <body>
+<div class="container">
 <h1>Precificador Universal</h1>
-<p>Aplicativo de precificacao. O conteudo completo sera adicionado na proxima atualizacao.</p>
+<div class="sub">Calcule o preco de venda de qualquer produto ou servico.</div>
+<div class="top-actions no-print">
+<button class="btn-secondary" onclick="salvarLocal()">Salvar</button>
+<button class="btn-secondary" onclick="carregarLocal()">Carregar</button>
+<button class="btn-secondary" onclick="exportarCSV()">Exportar CSV</button>
+<button class="btn-secondary" onclick="window.print()">Imprimir</button>
+<button class="btn-danger" onclick="limparTudo()">Limpar tudo</button>
+</div>
+<div class="card no-print">
+<h2 style="margin-top:0;">Como usar</h2>
+<div class="help-box">
+<b>1. Materiais:</b> informe preco da embalagem, quantidade na embalagem, quantidade usada e unidades.<br>
+<b>2. Mao de obra:</b> informe funcao, quantidade e valor por unidade.<br>
+<b>3. Custos adicionais:</b> embalagem, frete, taxas, etc.<br>
+<b>4. Parametros:</b> encargos, overhead, impostos, margem, comissao, financeiro.<br>
+<b>5.</b> O preco de venda aparece automaticamente no resumo.
+</div>
+<div class="examples-bar">
+<span class="tag">Carregar exemplo:</span>
+<button class="btn-example" onclick="carregarExemplo('construcao')">Construcao civil</button>
+<button class="btn-example" onclick="carregarExemplo('confeitaria')">Confeitaria</button>
+<button class="btn-example" onclick="carregarExemplo('costura')">Costura</button>
+<button class="btn-example" onclick="carregarExemplo('servico')">Servico</button>
+<span id="statusExemplo"></span>
+</div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">1. Dados do Produto</h2>
+<div class="row">
+<div class="col"><label>Nome do produto</label><input id="produtoNome"></div>
+<div class="col" style="max-width:200px;"><label>Quantidade produzida</label><input id="produtoQtd" type="number" value="1" step="any"></div>
+<div class="col" style="max-width:160px;"><label>Unidade</label><input id="produtoUnidade" placeholder="un, kg, hora"></div>
+</div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">2. Materiais</h2>
+<div class="help-box">
+<b>Qtd. usada:</b> quanto voce gasta para 1 produto. <b>Unidade de uso:</b> medida em que usa.<br>
+<b>Custo por:</b> preco total da embalagem. <b>Qtd. na embalagem:</b> unidades na embalagem (1 se avulso).<br>
+<b>Preco pago por:</b> unidade da embalagem.<br>
+<b>Calculo:</b> custo real = preco embalagem / qtd embalagem; consumo = qtd usada (convertida) x custo real.
+</div>
+<table id="tabelaMateriais">
+<thead><tr><th>Descricao</th><th>Qtd. usada</th><th>Unid. uso</th><th>Custo por R$</th><th>Qtd. embalagem</th><th>Preco pago por</th><th>Perda %</th><th class="num">Custo total</th><th></th></tr></thead>
+<tbody></tbody>
+<tfoot><tr><td colspan="7">Subtotal</td><td class="num" id="totalMateriais">R$ 0,00</td><td></td></tr></tfoot>
+</table>
+<div class="actions-bar no-print"><button class="btn-primary btn-small" onclick="addMaterial()">+ Material</button></div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">3. Mao de Obra</h2>
+<table id="tabelaMaoObra">
+<thead><tr><th>Funcao</th><th>Qtd.</th><th>Unidade</th><th>Valor/unid. R$</th><th class="num">Custo total</th><th></th></tr></thead>
+<tbody></tbody>
+<tfoot><tr><td colspan="4">Subtotal</td><td class="num" id="totalMaoObra">R$ 0,00</td><td></td></tr></tfoot>
+</table>
+<div class="actions-bar no-print"><button class="btn-primary btn-small" onclick="addMaoObra()">+ Mao de obra</button></div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">4. Custos Adicionais</h2>
+<table id="tabelaAdicionais">
+<thead><tr><th>Descricao</th><th>Qtd.</th><th>Valor/unid. R$</th><th class="num">Custo total</th><th></th></tr></thead>
+<tbody></tbody>
+<tfoot><tr><td colspan="3">Subtotal</td><td class="num" id="totalAdicionais">R$ 0,00</td><td></td></tr></tfoot>
+</table>
+<div class="actions-bar no-print"><button class="btn-primary btn-small" onclick="addAdicional()">+ Item</button></div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">5. Parametros</h2>
+<div class="row">
+<div class="col"><label>Encargos MO %</label><input id="pEncargos" type="number" value="0" step="0.01"></div>
+<div class="col"><label>Overhead %</label><input id="pBDI" type="number" value="10" step="0.01"></div>
+<div class="col"><label>Impostos %</label><input id="pImpostos" type="number" value="6" step="0.01"></div>
+<div class="col"><label>Margem %</label><input id="pMargem" type="number" value="20" step="0.01"></div>
+<div class="col"><label>Comissao %</label><input id="pComissao" type="number" value="0" step="0.01"></div>
+<div class="col"><label>Financeiro %</label><input id="pFinanceiro" type="number" value="0" step="0.01"></div>
+</div>
+<div class="warn" id="avisoMarkup"></div>
+</div>
+<div class="card">
+<h2 style="margin-top:0;">Resumo</h2>
+<div class="summary-grid">
+<div class="summary-item"><div class="label">Materiais</div><div class="value" id="rMateriais">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Mao de obra + encargos</div><div class="value" id="rMaoObra">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Adicionais</div><div class="value" id="rAdicionais">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Custo direto</div><div class="value" id="rCustoDireto">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Overhead</div><div class="value" id="rBDI">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Custo total</div><div class="value" id="rCustoTotal">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Custo unitario</div><div class="value" id="rCustoUnit">R$ 0,00</div></div>
+<div class="summary-item highlight"><div class="label">Preco de venda total</div><div class="value" id="rPrecoVenda">R$ 0,00</div></div>
+<div class="summary-item highlight"><div class="label">Preco unitario</div><div class="value" id="rPrecoUnit">R$ 0,00</div></div>
+<div class="summary-item"><div class="label">Markup</div><div class="value" id="rMarkup">0,00x</div></div>
+</div>
+</div>
+<footer>Precificador Universal - dados salvos localmente no navegador.</footer>
+</div>
+<script>
+var NL=String.fromCharCode(10);
+function fmt(v){return 'R$ '+(isFinite(v)?v:0).toFixed(2).replace('.',',');}
+function num(v){var n=parseFloat(v);return isFinite(n)?n:0;}
+var CONV={mg:0.001,g:1,kg:1000,ton:1000000,ml:1,l:1000,m3:1000000};
+var MASSA=['mg','g','kg','ton'];
+var VOLUME=['ml','l','m3'];
+var UNIDADES=['mg','g','kg','ton','ml','l','m3','m','m2','un','folha','cx','pct'];
+function selectUnidade(valor){
+var o='';
+for(var i=0;i<UNIDADES.length;i++){var u=UNIDADES[i];o+='<option value="'+u+'"'+(valor===u?' selected':'')+'>'+u+'</option>';}
+return '<select onchange="calcular()">'+o+'</select>';
+}
+function fator(a,b){
+a=(a||'').toLowerCase();b=(b||'').toLowerCase();
+if(a===b)return 1;
+if(MASSA.indexOf(a)>=0&&MASSA.indexOf(b)>=0)return CONV[a]/CONV[b];
+if(VOLUME.indexOf(a)>=0&&VOLUME.indexOf(b)>=0)return CONV[a]/CONV[b];
+return null;
+}
+function removeLinha(id){document.getElementById(id).parentNode.parentNode.remove();calcular();}
+var matId=0,moId=0,adId=0;
+function addMaterial(desc,qtd,uu,cu,qe,uc,perda){
+matId++;
+desc=desc||'';qtd=qtd||'';uu=uu||'kg';cu=cu||'';qe=qe||1;uc=uc||'kg';perda=perda||0;
+var tr=document.createElement('tr');tr.id='mat-'+matId;
+var h='<td><input value="'+desc+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+qtd+'" onchange="calcular()"></td>';
+h+='<td>'+selectUnidade(uu)+'</td>';
+h+='<td><input type="number" step="any" value="'+cu+'" onchange="calcular()"></td>';
+h+='<td><input type="number" step="any" value="'+qe+'" min="0.0001" onchange="calcular()"></td>';
+h+='<td>'+selectUnidade(uc)+'</td>';
+h+='<td><input type="number" step="any" value="'+perda+'" onchange="calcular()"></td>';
+h+='<td class="num" id="matT'+matId+'">R$ 0,00</td>';
+h+='<td><button class="btn-danger btn-small" onclick="removeLinha(\'mat-'+matId+'\')">x</button></td>';
+tr.innerHTML=h;
+document.querySelector('#tabelaMateriais tbody').appendChild(tr);
+calcular();
+}
+</script>
 </body>
 </html>
